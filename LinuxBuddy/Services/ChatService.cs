@@ -2,6 +2,7 @@
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.Ollama;
+using System.Text;
 using System.Text.Json;
 
 namespace LinuxBuddy.Services
@@ -27,6 +28,7 @@ namespace LinuxBuddy.Services
 
         /// <summary>
         /// Asks a Linux/bash-related question and streams the AI's response as bash commands.
+        /// The response is streamed to the console, with special handling for verbose mode and spinner display.
         /// </summary>
         /// <param name="question">The user's bash-related question.</param>
         /// <param name="model">The AI model to use.</param>
@@ -45,6 +47,7 @@ namespace LinuxBuddy.Services
 
         /// <summary>
         /// Asks a general question and streams the AI's response as text.
+        /// The response is streamed to the console, with special handling for verbose mode and spinner display.
         /// </summary>
         /// <param name="question">The user's general question.</param>
         /// <param name="model">The AI model to use.</param>
@@ -63,6 +66,7 @@ namespace LinuxBuddy.Services
 
         /// <summary>
         /// Logs the context and question to the console if verbose mode is enabled.
+        /// Displays context and question in separate sections for clarity.
         /// </summary>
         /// <param name="context">Optional context to display.</param>
         /// <param name="question">The question to display.</param>
@@ -86,6 +90,7 @@ namespace LinuxBuddy.Services
 
         /// <summary>
         /// Handles the interaction with the AI chat completion service, sending user requests and context, and streaming the response.
+        /// In verbose mode, streams the response directly. Otherwise, displays a spinner during AI "thinking" and suppresses output between <Thinking> tags.
         /// </summary>
         /// <param name="userRequest">User's prompt.</param>
         /// <param name="model">Model name to use.</param>
@@ -143,16 +148,55 @@ namespace LinuxBuddy.Services
 
             // Stream and display the AI's response
             Console.WriteLine("---------------------Response-------------------------");
+
+            if (_settingsService.Verbose)
+            {
+                // Just stream the output as-is
+                await foreach (var chatMessageContent in _chatCompletionService.GetStreamingChatMessageContentsAsync(chatHistory, settings))
+                {
+                    Console.Write(chatMessageContent.ToString());
+                }
+                Console.WriteLine("\n------------------------------------------------------");
+                Console.WriteLine();
+                return;
+            }
+
+            // Non-verbose: handle <Thinking> tags and show spinner
+            bool isThinking = false;
+            StringBuilder buffer = new();
+            var spinner = new Utilities.ConsoleSpinner();
+
             await foreach (var chatMessageContent in _chatCompletionService.GetStreamingChatMessageContentsAsync(chatHistory, settings))
             {
-                Console.Write(chatMessageContent);
+                string chunk = chatMessageContent.ToString();
+                if (chunk.Contains("<think>"))
+                {
+                    isThinking = true;
+                    spinner.Start();
+                    continue;
+                }
+                if (chunk.Contains("</think>"))
+                {
+                    isThinking = false;
+                    spinner.Stop();
+                    buffer.Clear();
+                    continue;
+                }
+                if (isThinking)
+                {
+                    continue;
+                }
+                else
+                {
+                    Console.Write(chunk);
+                }
             }
             Console.WriteLine("\n------------------------------------------------------");
             Console.WriteLine();
         }
 
         /// <summary>
-        /// Creates and configures the chat completion service for the specified model.
+        /// Creates and configures the chat completion service for the specified model and Ollama URL from settings.
         /// </summary>
         /// <param name="model">Model name to use.</param>
         /// <returns>Configured <see cref="IChatCompletionService"/> instance.</returns>
