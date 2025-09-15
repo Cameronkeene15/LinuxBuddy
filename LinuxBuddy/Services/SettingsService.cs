@@ -73,6 +73,9 @@
             // Define the path to the settings file.
             string settingsPath = Path.Combine(homePath, ".linuxBuddySettings");
 
+            // Ensure the directory exists.
+            Directory.CreateDirectory(homePath);
+
             // Save the trimmed model name to the settings file.
             File.WriteAllText(settingsPath, model.Trim().Trim('"'));
         }
