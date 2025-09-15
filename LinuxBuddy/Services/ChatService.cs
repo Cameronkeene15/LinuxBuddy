@@ -13,9 +13,14 @@ namespace LinuxBuddy.Services
     public class ChatService
     {
         /// <summary>
-        /// Service for accessing application settings.
+        /// Service for accessing application settings, such as verbosity and model configuration.
         /// </summary>
         private readonly SettingsService _settingsService;
+
+        /// <summary>
+        /// Console output utility for styled text display.
+        /// </summary>
+        private readonly Utilities.StyledConsole _styledConsole;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ChatService"/> class.
@@ -24,6 +29,7 @@ namespace LinuxBuddy.Services
         public ChatService(SettingsService settingsService)
         {
             _settingsService = settingsService;
+            _styledConsole = new Utilities.StyledConsole();
         }
 
         /// <summary>
@@ -76,21 +82,21 @@ namespace LinuxBuddy.Services
             {
                 if (!string.IsNullOrEmpty(context))
                 {
-                    Console.WriteLine("---------------------Context--------------------------");
-                    Console.WriteLine($"{context}");
-                    Console.WriteLine("------------------------------------------------------");
-                    Console.WriteLine();
+                    _styledConsole.WriteLine("---------------------Context--------------------------");
+                    _styledConsole.WriteLine($"{context}");
+                    _styledConsole.WriteLine("------------------------------------------------------");
+                    _styledConsole.WriteLine();
                 }
-                Console.WriteLine("---------------------Question-------------------------");
-                Console.WriteLine($"{question}");
-                Console.WriteLine("------------------------------------------------------");
-                Console.WriteLine();
+                _styledConsole.WriteLine("---------------------Question-------------------------");
+                _styledConsole.WriteLine($"{question}");
+                _styledConsole.WriteLine("------------------------------------------------------");
+                _styledConsole.WriteLine();
             }
         }
 
         /// <summary>
         /// Handles the interaction with the AI chat completion service, sending user requests and context, and streaming the response.
-        /// In verbose mode, streams the response directly. Otherwise, displays a spinner during AI "thinking" and suppresses output between <Thinking> tags.
+        /// In verbose mode, streams the response directly. Otherwise, displays a spinner during AI thinking and suppresses output between "think" tags.
         /// </summary>
         /// <param name="userRequest">User's prompt.</param>
         /// <param name="model">Model name to use.</param>
@@ -104,10 +110,10 @@ namespace LinuxBuddy.Services
             string instructions,
             string allowedResponseType)
         {
-            // Create and configure the chat completion service
+            // Create and configure the chat completion service for the specified model.
             IChatCompletionService _chatCompletionService = CreateChatCompletionService(model);
 
-            // Build system prompt with user and environment details
+            // Build system prompt with user and environment details.
             Models.SystemPrompt systemPrompt = new Models.SystemPrompt
             {
                 Username = Environment.UserName,
@@ -119,7 +125,7 @@ namespace LinuxBuddy.Services
 
             var chatHistory = new ChatHistory($"{JsonSerializer.Serialize(systemPrompt)}");
 
-            // Add context and initial assistant message if context is provided
+            // Add context and initial assistant message if context is provided.
             if (!string.IsNullOrEmpty(context))
             {
                 chatHistory.AddUserMessage(context);
@@ -134,7 +140,7 @@ namespace LinuxBuddy.Services
             }
             chatHistory.AddUserMessage(userRequest);
 
-            // Configure prompt execution settings for bash commands
+            // Configure prompt execution settings for bash commands.
             OllamaPromptExecutionSettings settings = new OllamaPromptExecutionSettings();
             if (allowedResponseType == "Bash")
             {
@@ -146,25 +152,25 @@ namespace LinuxBuddy.Services
                 };
             }
 
-            // Stream and display the AI's response
-            Console.WriteLine("---------------------Response-------------------------");
+            // Stream and display the AI's response.
+            _styledConsole.WriteLine("---------------------Response-------------------------");
 
             if (_settingsService.Verbose)
             {
-                // Just stream the output as-is
+                // Stream the output directly to the console.
                 await foreach (var chatMessageContent in _chatCompletionService.GetStreamingChatMessageContentsAsync(chatHistory, settings))
                 {
-                    Console.Write(chatMessageContent.ToString());
+                    _styledConsole.Write(chatMessageContent.ToString());
                 }
-                Console.WriteLine("\n------------------------------------------------------");
-                Console.WriteLine();
+                _styledConsole.WriteLine("\n------------------------------------------------------");
+                _styledConsole.WriteLine();
                 return;
             }
 
-            // Non-verbose: handle <Thinking> tags and show spinner
+            // In non-verbose mode, show spinner during AI "thinking" and suppress output between <think> tags.
             bool isThinking = false;
             StringBuilder buffer = new();
-            var spinner = new Utilities.ConsoleSpinner();
+            var spinner = new Utilities.ConsoleSpinner(_styledConsole);
 
             await foreach (var chatMessageContent in _chatCompletionService.GetStreamingChatMessageContentsAsync(chatHistory, settings))
             {
@@ -188,18 +194,17 @@ namespace LinuxBuddy.Services
                 }
                 else
                 {
-                    Console.Write(chunk);
+                    _styledConsole.Write(chunk);
                 }
             }
-            Console.WriteLine("\n------------------------------------------------------");
-            Console.WriteLine();
+            _styledConsole.WriteLine("\n------------------------------------------------------");
         }
 
         /// <summary>
         /// Creates and configures the chat completion service for the specified model and Ollama URL from settings.
         /// </summary>
-        /// <param name="model">Model name to use.</param>
-        /// <returns>Configured <see cref="IChatCompletionService"/> instance.</returns>
+        /// <param name="model">Model name to use for chat completion.</param>
+        /// <returns>Configured <see cref="IChatCompletionService"/> instance for streaming AI responses.</returns>
         private IChatCompletionService CreateChatCompletionService(string model)
         {
             var services = new ServiceCollection();
