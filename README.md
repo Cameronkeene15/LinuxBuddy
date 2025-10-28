@@ -1,4 +1,4 @@
-# Linux Buddy
+Ôªø# Linux Buddy
 Wish you had a buddy to help with Linux commands? Linux Buddy assists with common Linux tasks, can generate bash commands, and accepts piped input for context-aware help. It connects to your local Ollama server, so you can use the LLM of your choice.
 
 ## Features
@@ -7,7 +7,7 @@ Wish you had a buddy to help with Linux commands? Linux Buddy assists with commo
 - Pipe command results into Linux Buddy for context-aware assistance
 - User-friendly command-line interface
 - Lightweight and easy to install
-- Supports ìthinkingî models with a spinner that hides think-tags
+- Supports ‚Äúthinking‚Äù models with a spinner that hides think-tags
 
 ## Requirements
 - Ollama installed and running (e.g., `ollama serve`)
@@ -22,8 +22,8 @@ Wish you had a buddy to help with Linux commands? Linux Buddy assists with commo
 
 2. Configure Ollama URL and default model:
 - Edit `LinuxBuddy/Services/SettingsService.cs`
-  - `_ollamaUrl` defaults to `http://192.168.25.26:11434` ó change to your Ollama server (often `http://127.0.0.1:11434`)
-  - `_defaultModel` defaults to `deepseek-r1:1.5b` ó change if you want a different default
+  - `_ollamaUrl` defaults to `http://192.168.25.26:11434` ‚Äî change to your Ollama server (often `http://127.0.0.1:11434`)
+  - `_defaultModel` defaults to `deepseek-r1:1.5b` ‚Äî change if you want a different default
 - Alternatively, you can set the model at runtime via the `model` verb (see Usage).
 
 3. Ensure your model exists in Ollama:
@@ -118,7 +118,15 @@ Linux Buddy supports three verbs: `bash`, `general`, and `model`. The `-v|--verb
 - No output:
   - Try `-v` to see full streaming output and any errors.
 
-
 ## Acknowledgments
 - [Ollama] for local model serving
 - [Microsoft Semantic Kernel] for chat completion integration
+
+## Contributing
+Feel free to contribute or open issues on GitHub!
+
+## License
+Licensed under the Apache License 2.0. See [LICENSE](LICENSE) for details.
+
+---
+Built by Cameron Keene with ‚ù§Ô∏è
